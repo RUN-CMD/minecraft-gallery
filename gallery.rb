@@ -15,14 +15,16 @@ get '/gallery/thumbnails/screenshots/:filename' do
   source_image_path = File.join('', 'data', 'www', 'gallery', 'screenshots', filename)
 
   destination_thumbnail_dir  = FileUtils.mkdir_p(File.join('public', 'images', 'gallery', 'thumbnails', thumbnail_size, 'screenshots') ).first
-  destination_thumbnail_path = File.join(destination_thumbnail_dir, filename)
+  destination_thumbnail_path = File.join(destination_thumbnail_dir, filename).gsub(/png$/, 'jpg')
 
   unless File.exist?(destination_thumbnail_path)
     #  Dragonfly.app.fetch_file(source_image_path).thumb('320x180').to_response(env)
     begin
       Magick::Image.read(source_image_path).first.tap do |img|
         img.resize_to_fit!(thumbnail_size)
+        img.format = 'JPEG'
         img.write(destination_thumbnail_path) do
+          self.quality = 50
           self.compression = Magick::ZipCompression if destination_thumbnail_path.match(/png$/)
         end
       end
@@ -39,11 +41,38 @@ end
 get '/gallery' do
 header = '<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css">' +
 '<link rel="stylesheet" href="//blueimp.github.io/Gallery/css/blueimp-gallery.min.css">' +
-'<link rel="stylesheet" href="//10.0.0.3:25571/gallery/css/bootstrap-image-gallery.min.css">' +
-'<style>.blueimp-gallery > .slides > .slide > .slide-content { display: none; } </style>'
+'<link rel="stylesheet" href="//10.0.0.3:25571/gallery/css/bootstrap-image-gallery.min.css">'
 
+header += <<-eostyle
+<style>
+  .blueimp-gallery > .slides > .slide {
+
+  -webkit-transition-timing-function: cubic-bezier(0.0, 0.0, 0.000, 0.000); 
+     -moz-transition-timing-function: cubic-bezier(0.0, 0.0, 0.000, 0.000); 
+      -ms-transition-timing-function: cubic-bezier(0.0, 0.0, 0.000, 0.000); 
+       -o-transition-timing-function: cubic-bezier(0.0, 0.0, 0.000, 0.000); 
+          transition-timing-function: cubic-bezier(0.0, 0.0, 0.000, 0.000);
+
+  }
+
+  .blueimp-gallery > .slides > .slide > .slide-content {  
+  -webkit-transition: opacity 0s linear;
+     -moz-transition: opacity 0s linear;
+      -ms-transition: opacity 0s linear;
+       -o-transition: opacity 0s linear;
+          transition: opacity 0s linear;
+  }
+</style>
+eostyle
 
 filenames = `ls /data/www/gallery/screenshots/`.split("\n")
+filenames.select! do |filename|
+  begin
+    filename.split('-').first.to_i >= 2015
+  rescue
+    false
+  end
+end
 
 links = []
 
@@ -97,7 +126,7 @@ body = '<div id="links">' + links.join + '</div>'
 </div>
 
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-<script src="//blueimp.github.io/Gallery/js/jquery.blueimp-gallery.min.js"></script>
+<script src="//blueimp.github.io/Gallery/js/jquery.blueimp-gallery.js"></script>
 <script>
 blueimp.Gallery(
   document.getElementById('links').getElementsByTagName('a'),
