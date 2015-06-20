@@ -9,18 +9,22 @@ end
 
 get '/gallery/thumbnails/screenshots/:filename' do
   filename = File.basename(params[:filename])
+  thumbnail_size = '160x160'
+
   source_image_dir  = File.join('', 'data', 'www', 'gallery', 'screenshots')
   source_image_path = File.join('', 'data', 'www', 'gallery', 'screenshots', filename)
 
-  destination_thumbnail_dir  = FileUtils.mkdir_p(File.join('public', 'images', 'gallery', 'thumbnails', 'screenshots') ).first
+  destination_thumbnail_dir  = FileUtils.mkdir_p(File.join('public', 'images', 'gallery', 'thumbnails', thumbnail_size, 'screenshots') ).first
   destination_thumbnail_path = File.join(destination_thumbnail_dir, filename)
 
   unless File.exist?(destination_thumbnail_path)
     #  Dragonfly.app.fetch_file(source_image_path).thumb('320x180').to_response(env)
     begin
       Magick::Image.read(source_image_path).first.tap do |img|
-        img.resize_to_fit!(320, 320)
-        img.write(destination_thumbnail_path) { self.quality = 0.1 }
+        img.resize_to_fit!(thumbnail_size)
+        img.write(destination_thumbnail_path) do
+          self.compression = Magick::ZipCompression if destination_thumbnail_path.match(/png$/)
+        end
       end
     rescue Magick::ImageMagickError => e
       return e.message
