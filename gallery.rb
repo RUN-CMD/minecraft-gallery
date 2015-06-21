@@ -1,24 +1,58 @@
 require 'sinatra'
-require 'dragonfly'
 require 'rmagick'
 require 'fileutils'
+
+class GalleryConfig
+  def self.factory(system)
+    ConfigAir.new if system == :air
+  end
+end
+
+class ConfigAir < GalleryConfig
+  def gallery_root
+    File.join('images/gallery/screenshots/'.split('/') )
+  end
+
+  def thumbnails_root
+    File.join('images/gallery/thumbnails/screenshots/'.split('/') )
+  end
+
+  def thumbnails_generator_root
+    File.join('gallery/thumbnails/screenshots/'.split('/') )
+  end
+end
+
+class ConfigPi < GalleryConfig
+  def gallery_root
+    File.join('/data/www/gallery/screenshots/'.split('/') )
+  end
+
+  def thumbnails_root
+    FileUtils.mkdir_p(File.join('images/gallery/thumbnails/screenshots/'.split('/') ) ).first
+  end
+
+  def thumbnails_generator_root
+    File.join('gallery/thumbnails/screenshots/'.split('/') )
+  end
+end
+
+config = GalleryConfig.factory(:air)
 
 get '/' do
  'slash'
 end
 
-get '/gallery/thumbnails/screenshots/:filename' do
+get "/#{config.thumbnails_generator_root}/:filename" do
   filename = File.basename(params[:filename])
   thumbnail_size = '160x160'
 
-  source_image_dir  = File.join('', 'data', 'www', 'gallery', 'screenshots')
-  source_image_path = File.join('', 'data', 'www', 'gallery', 'screenshots', filename)
+  source_image_dir  = File.join('public', config.gallery_root)
+  source_image_path = File.join('public', config.gallery_root, filename)
 
-  destination_thumbnail_dir  = FileUtils.mkdir_p(File.join('public', 'images', 'gallery', 'thumbnails', thumbnail_size, 'screenshots') ).first
-  destination_thumbnail_path = File.join(destination_thumbnail_dir, filename)
+  FileUtils.mkdir_p(File.join('public', config.thumbnails_root) )
+  destination_thumbnail_path = File.join('public', config.thumbnails_root, filename)
 
   unless File.exist?(destination_thumbnail_path)
-    #  Dragonfly.app.fetch_file(source_image_path).thumb('320x180').to_response(env)
     begin
       Magick::Image.read(source_image_path).first.tap do |img|
         img.resize_to_fit!(thumbnail_size)
@@ -39,21 +73,28 @@ end
 get '/gallery' do
 header = '<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css">' +
 '<link rel="stylesheet" href="//blueimp.github.io/Gallery/css/blueimp-gallery.min.css">' +
-'<link rel="stylesheet" href="//10.0.0.3:25571/gallery/css/bootstrap-image-gallery.min.css">' +
-'<style>.blueimp-gallery > .slides > .slide > .slide-content { display: none; } </style>'
+'<link rel="stylesheet" href="//10.0.0.3:25571/gallery/css/bootstrap-image-gallery.min.css">'
 
+header += <<-eostyle
+<style>
+  .blueimp-gallery > .slides > .slide {
+  }
 
-filenames = `ls /data/www/gallery/screenshots/`.split("\n")
+  .blueimp-gallery > .slides > .slide > .slide-content {
+  }
+</style>
+eostyle
+
+filenames = `ls #{File.join('public', config.gallery_root)}`.split("\n")
 
 links = []
 
 filenames.each do |filename|
 
 
- links << '<a href="' + "http://10.0.0.3:25571/gallery/screenshots/#{filename}" + '" title="Banana" data-gallery>' +
-        '<img src="' + "http://10.0.0.3:4567/gallery/thumbnails/screenshots/#{filename}"  + '" alt="Banana">' +
-    '</a>'
-
+ links << '<a href="' + File.join(config.gallery_root, filename) + '" title="Banana" data-gallery>' +
+          '<img src="' + File.join(config.thumbnails_generator_root, filename)  + '" alt="Banana">' +
+          '</a>'
 end
 
 body = '<div id="links">' + links.join + '</div>'
