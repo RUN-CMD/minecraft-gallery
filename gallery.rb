@@ -71,8 +71,7 @@ get "/#{config.thumbnails_generator_root}/:filename" do
 end
 
 get '/gallery' do
-header = '<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css">' +
-'<link rel="stylesheet" href="//blueimp.github.io/Gallery/css/blueimp-gallery.min.css">'
+header = '<link rel="stylesheet" href="//blueimp.github.io/Gallery/css/blueimp-gallery.min.css">'
 
 header += <<-eostyle
 <style>
@@ -85,6 +84,14 @@ header += <<-eostyle
 eostyle
 
 filenames = `ls #{File.join('public', config.gallery_root)}`.split("\n")
+
+filenames.select! do |filename|
+  begin
+    filename.split('-').first.to_i >= 2015
+  rescue
+    false
+  end
+end
 
 links = []
 
