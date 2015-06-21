@@ -72,8 +72,7 @@ end
 
 get '/gallery' do
 header = '<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css">' +
-'<link rel="stylesheet" href="//blueimp.github.io/Gallery/css/blueimp-gallery.min.css">' +
-'<link rel="stylesheet" href="//10.0.0.3:25571/gallery/css/bootstrap-image-gallery.min.css">'
+'<link rel="stylesheet" href="//blueimp.github.io/Gallery/css/blueimp-gallery.min.css">'
 
 header += <<-eostyle
 <style>
@@ -144,7 +143,8 @@ blueimp.Gallery(
   document.getElementById('links').getElementsByTagName('a'),
   {
     displayTransition: false,
-    slideshowTransitionSpeed: 0
+    slideshowInterval: 1200,
+	transitionSpeed: 1
   }
 );
 </script>
